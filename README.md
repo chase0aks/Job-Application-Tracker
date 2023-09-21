@@ -22,7 +22,7 @@ How to Use:
 
 MIT License:
 
-This project is licensed under the terms of the MIT License. You are free to use and modify this software for personal and commercial purposes. See the LICENSE.txt file for more details.
+This project is licensed under the terms of the MIT License. You are free to use and modify this software for personal and commercial purposes. See the [LICENSE][LICENSE] file for more details.
 
 Note: The program stores data in a JSON file named "job_applications.json."
 
