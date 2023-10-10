@@ -9,21 +9,30 @@ def get_date():
   return datetime.now().strftime("%m/%d/%Y")
 
 
-# Function to load job applications from a JSON file
+# Function to load job applications from a JSON file and update "No Response" dates
 def load_job_applications():
-  try:
-    with open('job_applications.json', 'r') as json_file:
-      job_applications = json.load(json_file)
-  except (json.JSONDecodeError, FileNotFoundError):
-    job_applications = []
+    try:
+        with open('job_applications.json', 'r') as json_file:
+            job_applications = json.load(json_file)
+    except (json.JSONDecodeError, FileNotFoundError):
+        job_applications = []
 
-  if not job_applications:
-    print("Welcome to the Job Application Tracker!")
-    print("No job applications found. Let's add your first job application.")
-    add_initial_job(job_applications)
-    save_job_applications(job_applications)
+    if not job_applications:
+        print("Welcome to the Job Application Tracker!")
+        print("No job applications found. Let's add your first job application.")
+        add_initial_job(job_applications)
+        save_job_applications(job_applications)
+    else:
+        # Update dates for "No Response" statuses
+        tmp = get_date()
+        for application in job_applications:
+            response_statuses = application.get('Response Status', [])
+            for status in response_statuses:
+                if status['Response'] == "No Response":
+                    status['Date'] = tmp
+        save_job_applications(job_applications)
 
-  return job_applications
+    return job_applications
 
 
 # Function to add an initial job application
@@ -105,22 +114,31 @@ def add_application(job_applications):
 
 # Function to update the response status of a job application by Job Code
 def update_application(job_code, new_response_status, job_applications):
-  tmp = get_date()
-  for application in job_applications:
-    if application['Job Code'] == job_code:
-      response_statuses = application['Response Status']
-
-      # Check if the new response status is already in the list
-      if any(status['Response'] == new_response_status
-             for status in response_statuses):
-        print("The same response status already exists in this application.")
-        return  # Exit the function without making the update
-
-      response_statuses.append({"Response": new_response_status, "Date": tmp})
-      save_job_applications(job_applications)
-      print("Application updated successfully!")
-      return
-  print(f"No job application found with Job Code {job_code}.")
+    tmp = get_date()
+    for application in job_applications:
+        if application['Job Code'] == job_code:
+            response_statuses = application['Response Status']
+            
+            # Check if the new response status is already in the list
+            if any(status['Response'] == new_response_status for status in response_statuses):
+                print("The same response status already exists in this application.")
+                return  # Exit the function without making the update
+            
+            # Check if the "No Response" status is in the list and replace it
+            for status in response_statuses:
+                if status['Response'] == "No Response":
+                    status['Response'] = new_response_status
+                    status['Date'] = tmp
+                    save_job_applications(job_applications)
+                    print("Application updated successfully!")
+                    return
+            
+            # If "No Response" was not found, add the new response status
+            response_statuses.append({"Response": new_response_status, "Date": tmp})
+            save_job_applications(job_applications)
+            print("Application updated successfully!")
+            return
+    print(f"No job application found with Job Code {job_code}.")
 
 
 # Function to print all job applications
