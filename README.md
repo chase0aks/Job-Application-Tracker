@@ -12,8 +12,6 @@ The Job Application Tracker is a powerful Python program designed to simplify an
   - **Job Code**: A unique identifier for each application.
   - **Job Title**: The title of the job you're applying for.
   - **Company**: The name of the company or organization.
-  - **Application Date**: The date when you submitted your application.
-- Default response statuses are provided as "Applications" and "No Response."
 
 ### 2. Update an Application
 
@@ -62,7 +60,8 @@ This application relies on the following Python modules:
 
 - `json`: For efficient JSON file handling.
 - `os`: For handling operating system-related tasks.
-
+- `datetime`: For working with date and time information.
+- `collections`: For managing and processing data collections efficiently.
 
 ## License
 
