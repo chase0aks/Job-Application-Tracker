@@ -1,5 +1,12 @@
 import json
 import os
+from datetime import datetime
+from collections import defaultdict
+
+
+# Function to get the current date in the desired format
+def get_date():
+  return datetime.now().strftime("%m/%d/%Y")
 
 
 # Function to load job applications from a JSON file
@@ -25,14 +32,20 @@ def add_initial_job(job_applications):
       'Job Code': 'Job Code',
       'Job Title': 'Job Title',
       'Company': 'Company',
-      'Application Date': 'Application Date',
   }
   # Collect user input for each job data field
   new_application = {
       key: input(f"Enter {value}: ")
       for key, value in job_data.items()
   }
-  new_application['Response Status'] = ["Applications", "No Response"]
+  tmp = get_date()
+  new_application['Response Status'] = [{
+      "Response": "Applied",
+      "Date": tmp
+  }, {
+      "Response": "No Response",
+      "Date": tmp
+  }]
   job_applications.append(new_application)
 
 
@@ -61,14 +74,30 @@ def add_application(job_applications):
       'Job Code': 'Job Code',
       'Job Title': 'Job Title',
       'Company': 'Company',
-      'Application Date': 'Application Date',
   }
-  # Collect user input for each job data field
-  new_application = {
-      key: input(f"Enter {value}: ")
-      for key, value in job_data.items()
-  }
-  new_application['Response Status'] = ["Applications", "No Response"]
+
+  # Prompt the user for the job code
+  job_code = input("Enter Job Code: ")
+
+  # Check if the job code already exists in the list
+  if any(app['Job Code'] == job_code for app in job_applications):
+    print("Job Code already exists. Please enter a unique Job Code.")
+    return  # Exit the function without adding the application
+
+  # Collect user input for the remaining job data fields
+  new_application = {'Job Code': job_code}
+  for key, value in job_data.items():
+    if key != 'Job Code':
+      new_application[key] = input(f"Enter {value}: ")
+
+  tmp = get_date()
+  new_application['Response Status'] = [{
+      "Response": "Applied",
+      "Date": tmp
+  }, {
+      "Response": "No Response",
+      "Date": tmp
+  }]
   job_applications.append(new_application)
   save_job_applications(job_applications)
   print("Application added successfully!")
@@ -76,13 +105,18 @@ def add_application(job_applications):
 
 # Function to update the response status of a job application by Job Code
 def update_application(job_code, new_response_status, job_applications):
+  tmp = get_date()
   for application in job_applications:
     if application['Job Code'] == job_code:
-      response_statuses = application.setdefault('Response Status', [])
-      if response_statuses and response_statuses[-1] == 'No Response':
-        response_statuses[-1] = new_response_status
-      else:
-        response_statuses.append(new_response_status)
+      response_statuses = application['Response Status']
+
+      # Check if the new response status is already in the list
+      if any(status['Response'] == new_response_status
+             for status in response_statuses):
+        print("The same response status already exists in this application.")
+        return  # Exit the function without making the update
+
+      response_statuses.append({"Response": new_response_status, "Date": tmp})
       save_job_applications(job_applications)
       print("Application updated successfully!")
       return
@@ -99,7 +133,12 @@ def print_all_applications(job_applications):
   for i, application in enumerate(job_applications, 1):
     print(f"\nApplication {i}:")
     for key, value in application.items():
-      print(f"{key}: {value}")
+      if key == 'Response Status':
+        print(f"{key}:")
+        for status in value:
+          print(f"  - {status['Response']} ({status['Date']})")
+      else:
+        print(f"{key}: {value}")
     print()
 
 
@@ -110,37 +149,41 @@ def print_response_pairs(job_applications):
     return
 
   print("\nResponse Status Pairs:")
-  response_counts = {}
+  response_counts = defaultdict(int)
 
   for application in job_applications:
     response_statuses = application.get('Response Status', [])
     if response_statuses:
       for i in range(len(response_statuses) - 1):
-        pair = f"{response_statuses[i]} [{response_statuses[i + 1]}]"
-        response_counts[pair] = response_counts.get(pair, 0) + 1
+        response1 = response_statuses[i]["Response"]
+        response2 = response_statuses[i + 1]["Response"]
+        pair = f"{response1} [{response2}]"
+        response_counts[pair] += 1
 
   for pair, count in response_counts.items():
-    response1, response2 = pair.split('[')
-    response2 = response2.rstrip(']')
-    print(f"{response1} [{count}] {response2}")
+    response1, response2 = pair.split(' [')
+    print(f"{response1} [{count}] {response2[:-1]}")
 
 
-# Function to search for job applications based on a category and value
+# Function to search for job applications based on a category and value (case-insensitive)
 def search_application(category, value, job_applications):
   found_applications = []
+  value = value.lower(
+  )  # Convert the search value to lowercase for case-insensitive comparison
+  if category not in (1, 2, 3):  # Check if category is not in the range 1-3
+    print("Invalid category. Please enter a valid category (1-3).")
+    return found_applications  # Invalid category
+
   if category == 1:  # Search by Job Code
     key = 'Job Code'
   elif category == 2:  # Search by Job Title
     key = 'Job Title'
   elif category == 3:  # Search by Company
     key = 'Company'
-  elif category == 4:  # Search by Application Date
-    key = 'Application Date'
-  else:
-    return found_applications  # Invalid category
 
   found_applications = [
-      app for app in job_applications if key in app and app[key] == value
+      app for app in job_applications
+      if key in app and app[key].lower() == value
   ]
   return found_applications
 
@@ -155,7 +198,12 @@ def print_search_results(results):
   for i, application in enumerate(results, 1):
     print(f"\nResult {i}:")
     for key, value in application.items():
-      print(f"{key}: {value}")
+      if key == 'Response Status':
+        print(f"{key}:")
+        for status in value:
+          print(f"  - Response: {status['Response']}  Date: {status['Date']}")
+      else:
+        print(f"{key}: {value}")
     print()
 
 
@@ -190,7 +238,7 @@ while True:
   elif choice == '6':
     category = int(
         input(
-            "Search by category:\n1. Job Code\n2. Job Title\n3. Company\n4. Application Date\nEnter your choice: "
+            "Search by category:\n1. Job Code\n2. Job Title\n3. Company\nEnter your choice: "
         ))
     search_value = input("Enter the value to search for: ")
     found_applications = search_application(category, search_value,
